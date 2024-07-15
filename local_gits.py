@@ -15,7 +15,7 @@ class readable_dir(argparse.Action):
         else:
             raise argparse.ArgumentTypeError("readable_dir:{0} is not a readable dir".format(prospective_dir))
 
-def check_git_status(git_dir, git_name, verbose):
+def check_git_status(git_dir, git_name, verbose, all):
     files = subprocess.check_output(
         ["git", "status", "--porcelain"], text=True, cwd=git_dir,
     ).split("\n")
@@ -23,7 +23,7 @@ def check_git_status(git_dir, git_name, verbose):
     files = [file.strip() for file in files if file]
     
     if len(files) == 0:
-        print(success(git_name)) 
+        if all: print(success(git_name)) 
         return 0
 
     print(failure(git_name + " -> "), end="")
@@ -68,7 +68,12 @@ def main():
     parser.add_argument("--root", "-r", 
                         action=readable_dir, 
                         default=os.path.expanduser("~"), 
-                        help="The root dir from which github repos should be searched for. ~ by default"
+                        help="The root dir from which github repos should be searched for. ~ by default."
+                    )
+    parser.add_argument("--all", "-a",
+                        action="store_true",
+                        default=False,
+                        help="Whether to show all the github repos. Default shows ones with unpushed changes."     
                     )
 
     args = parser.parse_args()
@@ -80,13 +85,12 @@ def main():
         print("No local github repos found")
         return 0
 
-    print("\nLocal repos found are:")
     gits.sort(key=lambda x: x[0])
 
     exit_code = 0
     for git_name, git_dir in gits:
         if git_name not in exclude:
-            exit_code |= check_git_status(git_dir, git_name, args.verbose)
+            exit_code |= check_git_status(git_dir, git_name, args.verbose, args.all)
 
     if exit_code == 9:
         print(success("All repos are pushed."))
