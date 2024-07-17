@@ -15,7 +15,7 @@ class readable_dir(argparse.Action):
         else:
             raise argparse.ArgumentTypeError("readable_dir:{0} is not a readable dir".format(prospective_dir))
 
-def check_git_status(git_dir, git_name, verbose, all):
+def check_git_status(git_dir, git_name, verbose, all, untracked, modified):
     files = subprocess.check_output(
         ["git", "status", "--porcelain"], text=True, cwd=git_dir,
     ).split("\n")
@@ -27,21 +27,28 @@ def check_git_status(git_dir, git_name, verbose, all):
             print(f"{git_dir}: {success(git_name)}") 
         return 0
 
-    print(f"{git_dir}: {failure(git_name + ' -> ')}", end="")
 
-    modified_count = sum(1 for file in files if file[0] == "M") 
-    untracked_count = sum(1 for file in files if file[0] == "?")
+    modified_count = sum(1 for file in files if file.startswith("M")) 
+    untracked_count = sum(1 for file in files if file.startswith("?"))
 
-    if modified_count > 0:
-        print(f"{failure('M')}odified: {failure(str(modified_count))}", end=" ") 
-    
-    if untracked_count > 0:
-        print(f"{failure('U')}ntracked: {failure(str(untracked_count))}", end=" ") 
-    print()
+    if (modified_count and modified) or (untracked_count and untracked):
+        print_text = f"{git_dir}: {failure(git_name + ' -> ')}"
+    else:
+        return 0
+
+    if modified_count > 0 and modified:
+        print_text += f"{failure('M')}odified: {failure(str(modified_count))} " 
+    if untracked_count > 0 and untracked:
+        print_text += f"{failure('U')}ntracked: {failure(str(untracked_count))} " 
+
+    print(print_text)
 
     if verbose:
         for file in files:
-            print("  -", file)
+            if modified and file.startswith("M"):
+                print("  -", file)
+            if untracked and file.startswith("?"):
+                print("  -", file)
     return 1
 
 def get_git_dirs(home_dir):
@@ -76,9 +83,23 @@ def main():
                         default=False,
                         help="Whether to show all the github repos. Default shows ones with unpushed changes."     
                     )
+    
+    behind_type = parser.add_mutually_exclusive_group()
+    behind_type.add_argument("--modified",
+                            action="store_true",
+                            default=False,
+                            help="Whether to only check for modified files."
+                    )
+    behind_type.add_argument("--untracked",
+                            action="store_true",
+                            default=False,
+                            help="Whether to only check for untracked files."
+                    )
 
     args = parser.parse_args()
-
+    
+    untracked = (not args.modified and not args.untracked) or args.untracked
+    modified = (not args.untracked and not args.modified) or args.modified
     exclude = [] if args.exclude is None else args.exclude
 
     gits = get_git_dirs(args.root)
@@ -91,7 +112,7 @@ def main():
     exit_code = 0
     for git_name, git_dir in gits:
         if git_name not in exclude:
-            exit_code |= check_git_status(git_dir, git_name, args.verbose, args.all)
+            exit_code |= check_git_status(git_dir, git_name, args.verbose, args.all, untracked, modified)
 
     if exit_code == 9:
         print(success("All repos are pushed."))
