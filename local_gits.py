@@ -23,10 +23,11 @@ def check_git_status(git_dir, git_name, verbose, all):
     files = [file.strip() for file in files if file]
     
     if len(files) == 0:
-        if all: print(success(git_name)) 
+        if all: 
+            print(f"{git_dir}: {success(git_name)}") 
         return 0
 
-    print(failure(git_name + " -> "), end="")
+    print(f"{git_dir}: {failure(git_name + ' -> ')}", end="")
 
     modified_count = sum(1 for file in files if file[0] == "M") 
     untracked_count = sum(1 for file in files if file[0] == "?")
