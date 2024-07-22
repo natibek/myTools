@@ -22,9 +22,11 @@ def check_git_status(git_dir, git_name, verbose, all, untracked, modified):
 
     files = [file.strip() for file in files if file]
     
+    home_path = os.path.expanduser("~")
+
     if len(files) == 0:
         if all: 
-            print(f"{git_dir}: {success(git_name)}") 
+            print(f"{git_dir.replace(home_path, '~')}: {success(git_name)}") 
         return 0
 
 
@@ -32,7 +34,7 @@ def check_git_status(git_dir, git_name, verbose, all, untracked, modified):
     untracked_count = sum(1 for file in files if file.startswith("?"))
 
     if (modified_count and modified) or (untracked_count and untracked):
-        print_text = f"{git_dir}: {failure(git_name + ' -> ')}"
+        print_text = f"{git_dir.replace(home_path, '~')}: {failure(git_name + ' -> ')}"
     else:
         return 0
 
