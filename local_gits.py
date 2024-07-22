@@ -19,14 +19,17 @@ def check_git_status(git_dir, git_name, verbose, all, untracked, modified):
     files = subprocess.check_output(
         ["git", "status", "--porcelain"], text=True, cwd=git_dir,
     ).split("\n")
-
+    
     files = [file.strip() for file in files if file]
     
-    home_path = os.path.expanduser("~")
+    cur_branch = subprocess.check_output(
+        ["git", "branch", "--show-current"], text=True, cwd=git_dir,
+        )[:-1]
 
+    home_path = os.path.expanduser("~")
     if len(files) == 0:
         if all: 
-            print(f"{git_dir.replace(home_path, '~')}: {success(git_name)}") 
+            print(f"{git_dir.replace(home_path, '~')}: {success(git_name)}<{cur_branch}>") 
         return 0
 
 
@@ -34,7 +37,8 @@ def check_git_status(git_dir, git_name, verbose, all, untracked, modified):
     untracked_count = sum(1 for file in files if file.startswith("?"))
 
     if (modified_count and modified) or (untracked_count and untracked):
-        print_text = f"{git_dir.replace(home_path, '~')}: {failure(git_name + ' -> ')}"
+        file_display_text = failure(f"{git_name}") + f"<{cur_branch}>" + failure("-> ")
+        print_text = f"{git_dir.replace(home_path, '~')}: {file_display_text}"
     else:
         return 0
 
