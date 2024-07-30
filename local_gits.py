@@ -85,6 +85,8 @@ def get_git_dirs(home_dir):
         if git_dir
     ]
     git_dirs = [git_dir for git_dir in git_dirs if "local/share" not in git_dir]
+    # neovim repos in local/share should be ignored
+
     git_names = [os.path.basename(git_dir) for git_dir in git_dirs if git_dir]
     return list(zip(git_names, git_dirs))
 
