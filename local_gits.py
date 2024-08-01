@@ -3,6 +3,7 @@
 import argparse
 import os
 import subprocess
+from re import sub
 
 from pretty_print import *
 
@@ -27,16 +28,15 @@ class readable_dir(argparse.Action):
 def commits_behind(git_dir: str, cur_branch: str) -> int:
     """Check how many commits you are behind."""
 
-    try:
-        subprocess.call(
-            f"git fetch origin {cur_branch}".split(" "),
-            cwd=git_dir,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except subprocess.CalledProcessError:
-        # the branch is deleted remotely
-        return 0
+    fetch = subprocess.Popen(
+        f"git fetch origin {cur_branch}".split(" "),
+        cwd=git_dir,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    _, error = fetch.communicate()
+    if "couldn't find remote ref" in error.decode("utf-8"):
+        return -1
 
     commits_count = subprocess.check_output(
         f"git rev-list --left-right --count {cur_branch}...origin/{cur_branch}".split(
@@ -58,7 +58,9 @@ def git_unpushed_files(git_dir: str) -> list[str]:
     return [file.strip() for file in files if file]
 
 
-def check_git_status(git_dir, git_name, verbose, all, untracked, modified, show_behind):
+def check_git_status(
+    git_dir, git_name, verbose, all, untracked, modified, check_remote
+):
 
     files = git_unpushed_files(git_dir)
 
@@ -68,7 +70,7 @@ def check_git_status(git_dir, git_name, verbose, all, untracked, modified, show_
         cwd=git_dir,
     )[:-1]
 
-    num_behind = commits_behind(git_dir, cur_branch) if show_behind else 0
+    num_behind = commits_behind(git_dir, cur_branch) if check_remote else 0
 
     home_path = os.path.expanduser("~")
     file_display_text = failure(f"{git_name}") + f"<{cur_branch}>" + failure("-> ")
@@ -87,6 +89,7 @@ def check_git_status(git_dir, git_name, verbose, all, untracked, modified, show_
         (modified_count and modified)
         or (untracked_count and untracked)
         or num_behind > 0
+        or num_behind == -1
     ):
         file_display_text = failure(f"{git_name}") + f"<{cur_branch}>" + failure("-> ")
         print_text = f"{git_dir.replace(home_path, '~')}: {file_display_text}"
@@ -99,6 +102,8 @@ def check_git_status(git_dir, git_name, verbose, all, untracked, modified, show_
         print_text += f"{failure('U')}ntracked:{failure(str(untracked_count))} "
     if num_behind > 0:
         print_text += f"{failure('B')}ehind:{failure(str(num_behind))}"
+    elif num_behind == -1:
+        print_text += f"{failure('Remote Branch Deleted')}"
 
     print(print_text)
 
@@ -161,7 +166,7 @@ def main():
         help="Whether to show all the github repos. Default shows ones with unpushed changes.",
     )
     parser.add_argument(
-        "--show-behind",
+        "--check-remote",
         action="store_true",
         default=False,
         help="Whether to also show how many commits a local repo is behind the origin.",
@@ -204,7 +209,7 @@ def main():
                 args.all,
                 untracked,
                 modified,
-                args.show_behind,
+                args.check_remote,
             )
 
     if exit_code == 9:
