@@ -27,7 +27,17 @@ class readable_dir(argparse.Action):
 def commits_behind(git_dir: str, cur_branch: str) -> int:
     """Check how many commits you are behind."""
 
-    subprocess.call("git fetch origin".split(" "), cwd=git_dir)
+    try:
+        subprocess.call(
+            f"git fetch origin {cur_branch}".split(" "),
+            cwd=git_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except subprocess.CalledProcessError:
+        # the branch is deleted remotely
+        return 0
+
     commits_count = subprocess.check_output(
         f"git rev-list --left-right --count {cur_branch}...origin/{cur_branch}".split(
             " "
