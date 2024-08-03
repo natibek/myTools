@@ -116,22 +116,31 @@ def check_git_status(
     return 1
 
 
-def get_git_dirs(home_dir):
+def get_git_dirs(
+    home_dir: str, exclude: list[str], exclude_dirs: list[str]
+) -> list[tuple[str, str]]:
     home_dir = os.path.expanduser(home_dir)
     git_dirs = subprocess.check_output(
         ["find", ".", "-name", ".git"],
         text=True,
         cwd=home_dir,
     ).split("\n")
+
     git_dirs = [
         os.path.abspath(os.path.dirname(home_dir + git_dir[1:]))
         for git_dir in git_dirs
         if git_dir
     ]
-    git_dirs = [git_dir for git_dir in git_dirs if "local/share" not in git_dir]
-    # neovim repos in local/share should be ignored
 
-    git_names = [os.path.basename(git_dir) for git_dir in git_dirs if git_dir]
+    git_dirs = [
+        git_dir
+        for direc in exclude_dirs
+        for git_dir in git_dirs
+        if direc not in git_dir.replace(os.path.expanduser("~"), "~")
+        and os.path.basename(git_dir) not in exclude
+    ]
+
+    git_names = [os.path.basename(git_dir) for git_dir in git_dirs]
     return list(zip(git_names, git_dirs))
 
 
@@ -192,7 +201,12 @@ def main():
     modified = (not args.untracked and not args.modified) or args.modified
     exclude = [] if args.exclude is None else args.exclude
 
-    gits = get_git_dirs(args.root)
+    if env_exclude := os.environ.get("LOCAL_GITS_EXCLUDE_REPO"):
+        exclude.extend(env_exclude.split(";"))
+
+    exclude_dirs = os.environ.get("LOCAL_GITS_EXCLUDE_DIR", "").split(";")
+
+    gits = get_git_dirs(args.root, exclude, exclude_dirs)
     if len(gits) == 0:
         print("No local github repos found")
         return 0
@@ -201,16 +215,15 @@ def main():
 
     exit_code = 0
     for git_name, git_dir in gits:
-        if git_name not in exclude:
-            exit_code |= check_git_status(
-                git_dir,
-                git_name,
-                args.verbose,
-                args.all,
-                untracked,
-                modified,
-                args.check_remote,
-            )
+        exit_code |= check_git_status(
+            git_dir,
+            git_name,
+            args.verbose,
+            args.all,
+            untracked,
+            modified,
+            args.check_remote,
+        )
 
     if exit_code == 9:
         print(success("All repos are pushed."))
