@@ -70,6 +70,9 @@ def check_git_status(
         cwd=git_dir,
     )[:-1]
 
+    if not cur_branch:
+        return 0
+
     num_behind = commits_behind(git_dir, cur_branch) if check_remote else 0
 
     home_path = os.path.expanduser("~")
@@ -131,12 +134,12 @@ def get_git_dirs(
         for git_dir in git_dirs
         if git_dir
     ]
-
     git_dirs = [
         git_dir
         for direc in exclude_dirs
         for git_dir in git_dirs
-        if direc not in git_dir.replace(os.path.expanduser("~"), "~")
+        if not direc
+        or direc not in git_dir.replace(os.path.expanduser("~"), "~")
         and os.path.basename(git_dir) not in exclude
     ]
 
@@ -207,6 +210,7 @@ def main():
     exclude_dirs = os.environ.get("LOCAL_GITS_EXCLUDE_DIR", "").split(";")
 
     gits = get_git_dirs(args.root, exclude, exclude_dirs)
+
     if len(gits) == 0:
         print("No local github repos found")
         return 0
