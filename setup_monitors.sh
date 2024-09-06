@@ -6,9 +6,24 @@ do
 done
 
 eDP_monitor=$(xrandr | grep -w "connected" | awk '$1 ~ /eDP/ {print $1}')
-host=$(neofetch --off | awk '$1 ~ /Host/ {print $2}')
+# cleaning up string in bash is terrible 
 
-if [ "$host" = "Levono" ]; then
-  xrandr --output "$eDP_monitor" --mode 1920x1080
+# host=$(neofetch --off | grep "Host" | cut -d: -f2)
+# host=$(echo "$host" | tr -cd '[:print:]')
+# host=$(echo "$host" | sed 's/\[0m//g')
+# host=$(echo "$host" | tr -d '\n')
+# host=$(echo "$host" | tr -s ' ')
+# host=$(echo "$host" | xargs)
+# host=$(echo "$host" | sed 's/[[:space:]]*$//')
+# host=$(echo "$host" | awk '{$1=$1;print}')
+
+# echo "$host" | od -c
+# echo "<$host>"
+# echo "<83AW Levono Slim Pro 7 14APH8>"
+
+host=$(cat /etc/hostname)
+
+if [ "$host" = "slim" ]; then
+  # xrandr --output "$eDP_monitor" --mode 1920x1080
 fi
 
