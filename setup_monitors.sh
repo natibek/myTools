@@ -24,6 +24,6 @@ eDP_monitor=$(xrandr | grep -w "connected" | awk '$1 ~ /eDP/ {print $1}')
 host=$(cat /etc/hostname)
 
 if [ "$host" = "slim" ]; then
-  xrandr --output "$eDP_monitor" --mode 1920x1200
+  xrandr --output "$eDP_monitor" --mode 1680x1050
 fi
 
