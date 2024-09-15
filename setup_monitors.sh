@@ -5,7 +5,7 @@ do
   xrandr --output $monitor --auto --above eDP
 done
 
-eDP_monitor=$(xrandr | grep -w "connected" | awk '$1 ~ /eDP/ {print $1}')
+eDP_monitor=$(xrandr | awk '/connected/ && /eDP/ {print $1}')
 # cleaning up string in bash is terrible 
 
 # host=$(neofetch --off | grep "Host" | cut -d: -f2)
