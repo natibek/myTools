@@ -9,15 +9,28 @@ arg="$1"
 eDP_monitor=$(xrandr | grep -w "connected" | awk '$1 ~ /eDP/ {print $1}')
 cur_brightness=$(xrandr --verbose | awk '/Brightness/ { print $2; exit}')
 
-if [ "$arg" = "-increase" ] && (( $(echo "$cur_brightness + 0.05 < 1" | bc -l) )); then
+host=$(cat /etc/hostname)
+
+if [ "$host" = "archlinux" ]; then
+  max=1.5
+else
+  max=1 
+fi
+
+if [ "$arg" = "-brightness" ]; then
+  echo "$cur_brightness"
+  exit 0
+fi
+
+if [ "$arg" = "-increase" ] && (( $(echo "$cur_brightness + 0.05 < $max" | bc -l) )); then
   new_brightness=$(echo "$cur_brightness + 0.05" | bc -l)
   xrandr --output "$eDP_monitor" --brightness "$new_brightness"
   exit 0
 fi
 
-if [ "$arg" = "-decrease" ] && (( $(echo "$cur_brightness - 0.05 > 0.3" | bc -l) )); then
-  new_brightness=$(echo "$cur_brightness - 0.05" | bc -l)
-  xrandr --output "$eDP_monitor" --brightness "$new_brightness"
+if [ "$arg" = "-decrease" ] && (( $(echo "$cur_brightness - 0.1 > 0.3" | bc -l) )); then
+  new_brightness=$(echo "$cur_brightness - 0.1" | bc -l)
+  xrandr --output "$eDP_monitor" --brightness "$new_brightness" 
   exit 0
 fi
 
