@@ -1,8 +1,35 @@
 #!/usr/bin/env bash
 
+
+if [ $# -eq 0 ]; then
+  orientation="--above"
+else
+  case $1 in 
+    "-r")
+      orientation="--right-of"
+      ;;
+    "-l")
+      orientation="--left-of"
+      ;;
+    "-a")
+      orientation="--above"
+      ;;
+    "-b")
+      orientation="--below"
+      ;;
+    "-s")
+      orientation="--same-as"
+      ;;
+    *)
+      echo "Invalid orientation"
+      exit 0
+      ;;
+  esac
+fi
+
 for monitor in $(xrandr | grep -w "connected" | awk '$1 !~ /eDP/ && $1 !="" {print $1}')
 do
-  xrandr --output $monitor --auto --above eDP
+  xrandr --output $monitor --auto "$orientation" eDP
 done
 
 eDP_monitor=$(xrandr | awk '/connected/ && /eDP/ {print $1}')
