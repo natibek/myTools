@@ -14,7 +14,7 @@ host=$(cat /etc/hostname)
 if [ "$host" = "archlinux" ]; then
   max=1.5
 else
-  max=1 
+  max=2 
 fi
 
 if [ "$arg" = "-brightness" ]; then
